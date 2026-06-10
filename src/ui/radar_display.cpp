@@ -203,8 +203,12 @@ constexpr float kKmPerDeg = 111.0f;
 
 void offsetKmFromCenter(float lat, float lon, float* dx_km, float* dy_km,
                         float* dist_km) {
-  *dx_km =
-      static_cast<float>(lon - services::location::lon()) * kKmPerDeg;
+  // Longitude degrees shrink toward the poles; scale east-west by cos(lat)
+  // so distances/bearings stay correct away from the equator.
+  const float lon_scale =
+      cosf(static_cast<float>(services::location::lat()) * 0.01745329252f);
+  *dx_km = static_cast<float>(lon - services::location::lon()) * kKmPerDeg *
+           lon_scale;
   *dy_km =
       static_cast<float>(lat - services::location::lat()) * kKmPerDeg;
   *dist_km = sqrtf((*dx_km) * (*dx_km) + (*dy_km) * (*dy_km));

@@ -9,17 +9,24 @@
 #include "hardware/display.h"
 #include "services/adsb_client.h"
 #include "services/radar_location.h"
+#include "services/touch.h"
+#include "services/weather.h"
 #include "services/wifi_setup.h"
 #include "ui/radar_display.h"
 #include "ui/radar_range.h"
 #include "ui/status_screens.h"
+#include "ui/weather_display.h"
 
 namespace {
 
+enum class Page { Radar, Weather };
+
 bool g_radar_visible = false;
+Page g_page = Page::Radar;
 unsigned long g_wifi_down_since = 0;
 unsigned long g_last_reconnect_ms = 0;
 unsigned long g_last_adsb_fetch_ms = 0;
+unsigned long g_last_weather_fetch_ms = 0;
 
 void showRadarIfConnected() {
   if (WiFi.status() != WL_CONNECTED) {
@@ -60,6 +67,33 @@ void fetchAndDrawAircraft() {
   handleBootButton();
 }
 
+/** Fetch (if connected) and draw the weather page. */
+void showWeather(bool force_fetch) {
+  if (WiFi.status() == WL_CONNECTED &&
+      (force_fetch || !services::weather::current().valid)) {
+    services::weather::fetch(services::location::lat(),
+                             services::location::lon());
+    g_last_weather_fetch_ms = millis();
+  }
+  ui::weatherDisplayDraw();
+}
+
+/** A tap anywhere toggles between the radar and the weather page. */
+void handleTouchToggle() {
+  if (!services::touch::tapped()) {
+    return;
+  }
+  if (g_page == Page::Radar) {
+    g_page = Page::Weather;
+    g_radar_visible = false;  // stop radar from drawing over the weather page
+    showWeather(true);
+  } else {
+    g_page = Page::Radar;
+    g_radar_visible = false;  // force a fresh radar redraw
+    showRadarIfConnected();
+  }
+}
+
 }  // namespace
 
 void setup() {
@@ -69,13 +103,13 @@ void setup() {
   Serial.println("Plane Radar");
 
   bootButtonInit();
+  services::touch::init();
   displayInit();
   if (wifiShowsSetupScreenOnBoot()) {
     statusScreenPortal();
   }
   services::location::init();
   ui::radar::rangeInit();
-  services::adsb::setPollFn(wifiLoop);
 
   if (wifiSetupConnect()) {
     showRadarIfConnected();
@@ -84,7 +118,21 @@ void setup() {
 
 void loop() {
   handleBootButton();
-  wifiLoop();
+  handleTouchToggle();
+
+  if (g_page == Page::Weather) {
+    // Keep the weather page refreshed; retry sooner if we have no data yet.
+    if (WiFi.status() == WL_CONNECTED) {
+      const services::weather::Data& w = services::weather::current();
+      const unsigned long since = millis() - g_last_weather_fetch_ms;
+      if (since >= config::kWeatherFetchIntervalMs ||
+          (!w.valid && since >= config::kWeatherRetryIntervalMs)) {
+        showWeather(true);
+      }
+    }
+    delay(10);
+    return;
+  }
 
   if (WiFi.status() != WL_CONNECTED) {
     if (g_radar_visible) {
