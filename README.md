@@ -8,7 +8,7 @@ Firmware for the **Waveshare ESP32-S3-Touch-LCD-1.28** — a 1.28″ round **GC9
 
 1. **Wi‑Fi setup** (if needed) — captive portal on AP **`PlaneRadar-Setup`**
 2. **Radar** — live aircraft from [adsb.fi](https://opendata.adsb.fi/) on a sonar-style grid
-3. **Weather** — current conditions from [Open-Meteo](https://open-meteo.com) (free, no API key)
+3. **Weather** — current conditions from the [US National Weather Service](https://www.weather.gov/documentation/services-web-api) (matches Apple Weather / NWS), with [Open-Meteo](https://open-meteo.com) as a worldwide fallback — both free, no API key
 
 **Tap anywhere on the screen to switch between the radar and the weather page; tap again to switch back.**
 
@@ -38,7 +38,7 @@ BOOT is the on-board button on **GPIO 0** (active LOW). During setup you can als
 
 ## Weather page
 
-Uses Open-Meteo's current-weather endpoint for your configured location (no API key, returns °F directly):
+Uses the US National Weather Service for your configured location (the source Apple Weather tracks), falling back to Open-Meteo where NWS has no coverage. No API key:
 
 - **Condition** label (Sunny / Partly Cloudy / Cloudy / Foggy / Rainy / Snowy / Storm)
 - **Color icon** for the condition
@@ -144,7 +144,7 @@ git tag v1.1.0 && git push origin v1.1.0
 - [LovyanGFX](https://github.com/lovyan03/LovyanGFX)
 - [WiFiManager](https://github.com/tzapu/WiFiManager)
 - [ArduinoJson](https://github.com/bblanchon/ArduinoJson)
-- Weather data by [Open-Meteo](https://open-meteo.com); aircraft data by [adsb.fi](https://opendata.adsb.fi/)
+- Weather data by the [US National Weather Service](https://www.weather.gov/documentation/services-web-api) and [Open-Meteo](https://open-meteo.com); aircraft data by [adsb.fi](https://opendata.adsb.fi/)
 
 ## Credits & license
 
