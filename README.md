@@ -14,6 +14,18 @@ Firmware for the **Waveshare ESP32-S3-Touch-LCD-1.28** — a 1.28″ round **GC9
 
 After Wi‑Fi is saved, the device reconnects automatically; the radar runs in the main loop with periodic ADS-B updates (~3 s), and the weather refreshes every 10 minutes while shown.
 
+## Flash the prebuilt firmware (easiest — no build tools)
+
+Grab the latest `.bin` from **[Releases](../../releases/latest)** and flash it straight from your browser:
+
+1. Open the **[ESP Web Flasher](https://espressif.github.io/esptool-js/)** in Chrome or Edge.
+2. Plug the board into USB. If it isn't detected, put it in download mode: **hold BOOT, tap RESET, release BOOT**.
+3. Click **Connect** and pick the serial port.
+4. Add `plane-radar-vX.Y.Z.bin` at offset **`0x0`**, set chip to **ESP32-S3**, then **Program**.
+5. On first boot, join the **`PlaneRadar-Setup`** Wi‑Fi and open `http://192.168.4.1` to enter your home latitude/longitude.
+
+The release `.bin` is a merged image (bootloader + partitions + app), so the single file at `0x0` is all you need. A `.sha256` is provided to verify the download. To build it yourself instead, see [Build from source](#build-from-source).
+
 ## Controls
 
 | Input | Effect |
@@ -100,7 +112,9 @@ Edit **`include/config.h`** for hardware and behavior:
 
 Range presets: `include/ui/radar_range.h` (`kRangePresets`).
 
-## Build & flash
+## Build from source
+
+Requires [PlatformIO](https://platformio.org/). To build, flash, and watch the serial log:
 
 ```bash
 pio run -e supermini -t upload --upload-port <PORT>   # e.g. COM3 on Windows
@@ -110,6 +124,20 @@ pio device monitor --port <PORT>
 - PlatformIO env: **`supermini`** (board `esp32-s3-devkitc-1`)
 - Serial: **115200** baud over the board's CH343 USB-UART bridge
 - `ARDUINO_USB_CDC_ON_BOOT=0` so serial/logs come out the CH343 port
+
+To produce the merged single-file image yourself (same as the release `.bin`):
+
+```bash
+pio run -e supermini -t merge          # -> .pio/build/supermini/firmware-merged.bin (flash at 0x0)
+```
+
+### Cutting a release
+
+Tag a version and push it; the GitHub Actions workflow builds the firmware and publishes a release with the merged `.bin`:
+
+```bash
+git tag v1.1.0 && git push origin v1.1.0
+```
 
 ## Dependencies
 
